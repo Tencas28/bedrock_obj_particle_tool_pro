@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>OBJ → Bedrock Particles Pro</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Minecraft Bedrock · OBJ / MTL</div>
+        <h1>OBJ → Bedrock Particles Pro</h1>
+        <p class="subtitle">Importa modelos .obj con .mtl y texturas, conserva proporciones y posición, y genera comandos optimizados con vista previa de modelo y simulación en juego.</p>
+      </div>
+      <div class="badge">Local · HTML / CSS / JS</div>
+    </header>
+
+    <main class="layout">
+      <section class="panel controls">
+        <div class="card">
+          <h2>Archivos del modelo</h2>
+          <div class="dropzone" id="dropzone">
+            <input id="modelFiles" type="file" multiple accept=".obj,.mtl,.png,.jpg,.jpeg,.webp,.tga,.bmp" />
+            <div>
+              <strong>Arrastra aquí el .obj, .mtl y texturas</strong>
+              <p>También puedes pegar el texto del OBJ y del MTL por separado.</p>
+            </div>
+          </div>
+          <div class="stack">
+            <label>OBJ
+              <textarea id="objText" spellcheck="false" placeholder="Pega el contenido del .obj aquí..."></textarea>
+            </label>
+            <label>MTL
+              <textarea id="mtlText" spellcheck="false" placeholder="Pega el contenido del .mtl aquí..."></textarea>
+            </label>
+          </div>
+          <div class="row">
+            <button id="loadBtn">Procesar modelo</button>
+            <button class="secondary" id="sampleBtn">Cargar ejemplo</button>
+            <button class="secondary" id="clearFilesBtn">Limpiar archivos</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Transformación y muestreo</h2>
+          <div class="grid-3">
+            <label>Escala <input id="scale" type="number" step="0.01" value="1" /></label>
+            <label>Rotación X <input id="rotX" type="number" step="1" value="0" /></label>
+            <label>Rotación Y <input id="rotY" type="number" step="1" value="0" /></label>
+            <label>Rotación Z <input id="rotZ" type="number" step="1" value="0" /></label>
+            <label>Offset X <input id="offX" type="number" step="0.01" value="0" /></label>
+            <label>Offset Y <input id="offY" type="number" step="0.01" value="0" /></label>
+            <label>Offset Z <input id="offZ" type="number" step="0.01" value="0" /></label>
+          </div>
+          <div class="grid-3">
+            <label>Pivote
+              <select id="anchor">
+                <option value="original">Original</option>
+                <option value="center">Centro</option>
+                <option value="bottom">Centro inferior</option>
+                <option value="min">Esquina mínima</option>
+              </select>
+            </label>
+            <label>Modo
+              <select id="mode">
+                <option value="surface">Superficie</option>
+                <option value="edges">Aristas</option>
+                <option value="vertices">Vértices</option>
+                <option value="all">Todo</option>
+              </select>
+            </label>
+            <label>Separación <input id="spacing" type="number" step="0.01" value="0.14" /></label>
+            <label>Máx. partículas <input id="maxParticles" type="number" step="1" value="7000" /></label>
+            <label>Suavizado <input id="smoothness" type="number" step="1" value="1" min="1" max="4" /></label>
+            <label>Escala partículas <input id="particleScale" type="number" step="0.01" value="1" /></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Exportación Bedrock</h2>
+          <div class="grid-2">
+            <label>Partícula
+              <input id="particleSearch" type="text" list="particleList" value="minecraft:basic_flame_particle" />
+            </label>
+            <label>Selector
+              <input id="selector" type="text" value="@s" />
+            </label>
+          </div>
+          <datalist id="particleList"></datalist>
+          <div class="grid-2">
+            <label class="toggle"><input id="useLocalCoords" type="checkbox" checked /> Usar coords locales ^ ^ ^</label>
+            <label class="toggle"><input id="onePerLine" type="checkbox" checked /> Un comando por línea</label>
+          </div>
+          <div class="row">
+            <button id="exportBtn">Generar comandos</button>
+            <button class="secondary" id="copyBtn">Copiar</button>
+            <button class="secondary" id="downloadBtn">Descargar .mcfunction</button>
+          </div>
+          <p class="small">Cuando activas coords locales, la salida usa la sintaxis de <code>execute</code> con <code>^ ^ ^</code> para integrarse mejor en funciones.</p>
+        </div>
+
+        <div class="card">
+          <h2>Información de la partícula</h2>
+          <div class="particle-info">
+            <canvas id="spriteCanvas" width="128" height="128"></canvas>
+            <div>
+              <div id="particleName" class="particle-name">minecraft:basic_flame_particle</div>
+              <div id="particleMeta" class="particle-meta"></div>
+              <div id="particleNotes" class="chips"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card stats">
+          <h2>Resumen</h2>
+          <div id="stats" class="stats-grid"></div>
+        </div>
+      </section>
+
+      <section class="viewport">
+        <div class="card preview-card">
+          <div class="preview-head">
+            <div>
+              <h2>Vista previa del modelo</h2>
+              <div class="tiny">Arrastra para rotar · pellizca para acercar · rueda para zoom</div>
+            </div>
+            <div class="tiny" id="modelPreviewInfo">Sin modelo cargado</div>
+          </div>
+          <canvas id="sceneCanvas"></canvas>
+        </div>
+
+        <div class="card preview-card">
+          <div class="preview-head">
+            <div>
+              <h2>Así se vería en juego</h2>
+              <div class="tiny">Simulación de partículas sobre el modelo usando la información del paquete de Bedrock.</div>
+            </div>
+            <div class="tiny" id="gamePreviewInfo">Esperando datos</div>
+          </div>
+          <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="preview-head">
+            <div>
+              <h2>Salida</h2>
+              <div class="tiny" id="commandInfo">0 líneas</div>
+            </div>
+          </div>
+          <textarea id="output" spellcheck="false" placeholder="Aquí aparecerán los comandos generados..." readonly></textarea>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
